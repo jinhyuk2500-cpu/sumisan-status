@@ -36,6 +36,10 @@ button{font:inherit;font-weight:700;border:0;background:var(--ink);color:var(--p
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;border-left:4px solid var(--line)}
 .stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
 .stat span{color:var(--muted);font-size:12px}
+button.stat{font:inherit;color:inherit;text-align:left;cursor:pointer;font-weight:400}
+button.stat:hover{border-color:var(--accent)}
+button.stat[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.stat em{display:block;font-style:normal;font-size:11px;color:var(--muted);margin-top:2px}
 .stat.bad{border-left-color:var(--bad)} .stat.warn{border-left-color:var(--warn)} .stat.acc{border-left-color:var(--accent)}
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .tabs{display:flex;gap:4px}
@@ -109,6 +113,7 @@ footer{color:var(--muted);font-size:12px}
       <button class="tab" role="tab" id="tab-org" aria-selected="true">현장별 묶음 <span id="cnt-g"></span></button>
       <button class="tab" role="tab" id="tab-work" aria-selected="false">작업지시서 <span id="cnt-w"></span></button>
       <button class="tab" role="tab" id="tab-survey" aria-selected="false">사전조사의뢰서 <span id="cnt-p"></span></button>
+      <button class="tab" role="tab" id="tab-all" aria-selected="false">전체 목록 <span id="cnt-a"></span></button>
     </div>
     <div class="filters">
       <label class="small" for="q">검색</label>
@@ -157,16 +162,34 @@ function start(data){
   state.items=data.items;$("updated").textContent=data.updated+" 기준";
   STATUSES.forEach(s=>{const o=el("option",null,s);o.value=s;$("fs").append(o)});
   $("gate").hidden=true;$("app").hidden=false;
-  $("tab-org").onclick=()=>setTab("org");$("tab-work").onclick=()=>setTab("work");$("tab-survey").onclick=()=>setTab("survey");
+  $("tab-org").onclick=()=>setTab("org");$("tab-work").onclick=()=>setTab("work");$("tab-survey").onclick=()=>setTab("survey");$("tab-all").onclick=()=>setTab("all");
   $("q").oninput=e=>{state.q=e.target.value.trim().toLowerCase();render()};
   $("fs").onchange=e=>{state.fs=e.target.value;render()};
   $("fo").onchange=e=>{state.fo=e.target.checked;render()};
-  const h=location.hash.slice(1);setTab(["work","survey","org"].includes(h)?h:"org");
+  const h=location.hash.slice(1);setTab(["work","survey","org","all"].includes(h)?h:"org");
 }
-function setTab(t){state.tab=t;$("tab-org").setAttribute("aria-selected",t==="org");$("tab-work").setAttribute("aria-selected",t==="work");$("tab-survey").setAttribute("aria-selected",t==="survey");try{history.replaceState(null,"","#"+t)}catch(e){}render()}
+function setTab(t){state.tab=t;$("tab-org").setAttribute("aria-selected",t==="org");$("tab-work").setAttribute("aria-selected",t==="work");$("tab-survey").setAttribute("aria-selected",t==="survey");$("tab-all").setAttribute("aria-selected",t==="all");try{history.replaceState(null,"","#"+t)}catch(e){}render()}
 
 const HEAD={work:["No","받은 날짜","현장","공사명","작업지시번호","작업시작","완료요청","금액(원)","보낸 사람","진행상태","메모"],
-            survey:["No","받은 날짜","현장","조사 대상","문서번호","조사기한","제출기한","보낸 사람","진행상태","메모"]};
+            survey:["No","받은 날짜","현장","조사 대상","문서번호","조사기한","제출기한","보낸 사람","진행상태","메모"],
+            all:["구분","No","받은 날짜","현장","내용","기한","보낸 사람","진행상태","메모"]};
+function quick(k){
+  const cur=activeCard();
+  if(cur===k&&k!=="w"&&k!=="p"){state.fs="";state.fo=false;syncFilters();setTab("all");return}
+  state.fs="";state.fo=false;
+  if(k==="need")state.fs="확인 필요";if(k==="wait")state.fs="견적 회신 대기";if(k==="over")state.fo=true;
+  syncFilters();setTab(k==="w"?"work":k==="p"?"survey":"all");
+  requestAnimationFrame(()=>$("tablebox").scrollIntoView({block:"start",behavior:"smooth"}));
+}
+function syncFilters(){$("fs").value=state.fs;$("fo").checked=state.fo}
+function activeCard(){
+  if(state.fo&&!state.fs&&state.tab==="all")return "over";
+  if(state.fs==="확인 필요"&&!state.fo&&state.tab==="all")return "need";
+  if(state.fs==="견적 회신 대기"&&!state.fo&&state.tab==="all")return "wait";
+  if(!state.fs&&!state.fo&&state.tab==="work")return "w";
+  if(!state.fs&&!state.fo&&state.tab==="survey")return "p";
+  return "";
+}
 function pass(i){
   if(state.fs&&i.status!==state.fs)return false;
   if(state.fo&&!(!isDone(i)&&i.due&&dday(i.due)<0))return false;
@@ -202,21 +225,25 @@ function render(){
   const all=state.items,w=all.filter(i=>i.kind==="w"),p=all.filter(i=>i.kind==="p");
   const over=all.filter(i=>!isDone(i)&&i.due&&dday(i.due)<0).length;
   const box=$("stats");box.replaceChildren();
-  [[w.length,"작업지시서","acc"],[p.length,"사전조사의뢰서","acc"],[all.filter(i=>i.status==="확인 필요").length,"진행상태 '확인 필요'","warn"],[all.filter(i=>i.status==="견적 회신 대기").length,"견적 회신 대기","warn"],[over,"기한 지난 미완료","bad"]]
-    .forEach(([n,l,c])=>{const d=el("div","stat "+c);d.append(el("b",null,String(n)),el("span",null,l));box.append(d)});
+  const act=activeCard();
+  [["w",w.length,"작업지시서","acc"],["p",p.length,"사전조사의뢰서","acc"],["need",all.filter(i=>i.status==="확인 필요").length,"진행상태 '확인 필요'","warn"],["wait",all.filter(i=>i.status==="견적 회신 대기").length,"견적 회신 대기","warn"],["over",over,"기한 지난 미완료","bad"]]
+    .forEach(([k,n,l,c])=>{const d=el("button","stat "+c);d.type="button";d.setAttribute("aria-pressed",act===k);d.onclick=()=>quick(k);
+      d.append(el("b",null,String(n)),el("span",null,l),el("em",null,act===k?(k==="w"||k==="p"?"보는 중":"보는 중 · 다시 누르면 해제"):"눌러서 목록 보기"));box.append(d)});
+  $("cnt-a").textContent=all.length;
   $("cnt-w").textContent=w.length;$("cnt-p").textContent=p.length;$("cnt-g").textContent=new Set(all.map(i=>i.group)).size+"곳";
   const org=state.tab==="org";$("orgbox").hidden=!org;$("tablebox").hidden=org;
   if(org){renderOrg();return}
-  const kind=state.tab==="work"?"w":"p";
+  const kind=state.tab==="work"?"w":state.tab==="survey"?"p":null;
   $("thead").replaceChildren(...HEAD[state.tab].map(h=>el("th",null,h)));
-  const rows=all.filter(i=>i.kind===kind).sort((a,b)=>a.no-b.no).filter(pass);
+  const rows=all.filter(i=>!kind||i.kind===kind).sort((a,b)=>kind?a.no-b.no:(a.kind===b.kind?a.no-b.no:(a.kind==="w"?-1:1))).filter(pass);
   const tb=$("tbody");tb.replaceChildren();
   if(!rows.length){const tr=el("tr"),td=el("td","small","조건에 맞는 건이 없어요.");td.colSpan=HEAD[state.tab].length;tr.append(td);tb.append(tr);return}
   rows.forEach(i=>{
     const tr=el("tr","main");tr.tabIndex=0;tr.dataset.id=i.id;
     const toggle=()=>{state.open.has(i.id)?state.open.delete(i.id):state.open.add(i.id);render()};
     tr.onclick=toggle;tr.onkeydown=e=>{if(e.key==="Enter")toggle()};
-    tr.append(el("td","num",String(i.no)),el("td","num",short(i.recv)),el("td","site",i.site),el("td",null,i.title),el("td","small",i.docno||"–"),el("td","num",short(i.start)));
+    if(!kind){const kc=el("td","small",i.kind==="w"?"작업지시서":"사전조사");kc.style.whiteSpace="nowrap";tr.append(kc,el("td","num",String(i.no)),el("td","num",short(i.recv)),el("td","site",i.site),el("td",null,label(i)))}
+    else tr.append(el("td","num",String(i.no)),el("td","num",short(i.recv)),el("td","site",i.site),el("td",null,i.title),el("td","small",i.docno||"–"),el("td","num",short(i.start)));
     const dt=el("td","num",short(i.due));
     if(i.due){const n=dday(i.due),b=el("span","dd");if(isDone(i)){b.classList.add("done");b.textContent="완료"}else if(n<0){b.classList.add("over");b.textContent=(-n)+"일 지남"}else if(n<=3){b.classList.add("soon");b.textContent=n===0?"오늘":"D-"+n}else{b.classList.add("later");b.textContent="D-"+n}dt.append(b)}
     tr.append(dt);
@@ -227,7 +254,7 @@ function render(){
     tb.append(tr);
     if(state.open.has(i.id)){const dr=el("tr","detail"),td=el("td");td.colSpan=HEAD[state.tab].length;const dl=el("dl","detail-grid");
       const add=(k,v)=>{if(v)dl.append(el("dt",null,k),el("dd",null,v))};
-      add(kind==="w"?"내용":"조사 내용",i.detail);add("원인·비고",i.cause);add("요청사항",i.request);add("메일 제목",i.subject);
+      add(i.kind==="w"?"내용":"조사 내용",i.detail);if(!kind)add("문서번호",i.docno);add("원인·비고",i.cause);add("요청사항",i.request);add("메일 제목",i.subject);
       td.append(dl);dr.append(td);tb.append(dr)}
   });
 }
