@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>수미산 작업지시서·사전조사 현황</title>
+<style>
+/* 현장 사무실 게시판 느낌: 차분한 청회색 바탕 + 안전주황 포인트. 잠금 화면 → 요약 → 탭 → 표 */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#1d2731; --muted:#5f6b77; --line:#d9dfe5;
+  --accent:#d9661f; --accent-soft:#fbe9dc;
+  --ok:#2f7d4f; --ok-soft:#e1f2e7; --warn:#a96a00; --warn-soft:#fff1d1; --bad:#b4342b; --bad-soft:#fbe3e1; --info:#2d5f8f; --info-soft:#e2edf7;
+  --body:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#141a20; --panel:#1c242c; --ink:#e7ecf0; --muted:#9aa7b3; --line:#2f3a45;
+  --accent:#f08a45; --accent-soft:#3a2a1f;
+  --ok:#6fcf97; --ok-soft:#1e3528; --warn:#f2c14e; --warn-soft:#3a3120; --bad:#f2837a; --bad-soft:#3d2422; --info:#7fb2e5; --info-soft:#1f2f40;
+  color-scheme:dark;}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding:24px 20px 48px;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:3px solid var(--accent);padding-bottom:12px}
+h1{font-size:24px;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.gate{max-width:380px;margin:12vh auto 0;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.gate h1{font-size:20px}
+.gate form{display:flex;gap:8px}
+.gate input{flex:1}
+.err{color:var(--bad);font-size:13px;min-height:1.2em}
+button{font:inherit;font-weight:700;border:0;background:var(--ink);color:var(--panel);padding:8px 16px;border-radius:6px;cursor:pointer}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;border-left:4px solid var(--line)}
+.stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:12px}
+.stat.bad{border-left-color:var(--bad)} .stat.warn{border-left-color:var(--warn)} .stat.acc{border-left-color:var(--accent)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.tabs{display:flex;gap:4px}
+.tab{border:1px solid var(--line);background:var(--panel);color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input,select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 10px}
+input:focus-visible,select:focus-visible,button:focus-visible,tr:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+#q{min-width:220px}
+.tablebox{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:980px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:700;background:var(--bg);white-space:nowrap}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.main{cursor:pointer}
+tr.main:hover td{background:var(--accent-soft)}
+.site{font-weight:700}
+.small{font-size:12px;color:var(--muted)}
+.dd,.pill{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:10px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dd{margin-left:4px}
+.over{background:var(--bad-soft);color:var(--bad)} .soon{background:var(--warn-soft);color:var(--warn)} .later{background:var(--info-soft);color:var(--info)} .done{background:var(--ok-soft);color:var(--ok)}
+.s-need{background:var(--warn-soft);color:var(--warn)} .s-progress{background:var(--info-soft);color:var(--info)} .s-done{background:var(--ok-soft);color:var(--ok)} .s-hold{background:var(--bad-soft);color:var(--bad)}
+tr.detail td{background:var(--bg);font-size:13px}
+.detail-grid{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;max-width:980px}
+.detail-grid dt{color:var(--muted)} .detail-grid dd{margin:0;white-space:pre-line}
+footer{color:var(--muted);font-size:12px}
+[hidden]{display:none!important}
+@media (max-width:600px){h1{font-size:20px}.wrap{padding:16px 16px 40px}#q{min-width:0;flex:1}}
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <h1>수미산건설 작업 현황</h1>
+  <div class="small">초대받은 분만 볼 수 있어요. 받은 비밀번호를 입력하세요.</div>
+  <form id="gf"><label for="pw" class="small" hidden>비밀번호</label><input id="pw" type="password" autocomplete="current-password" placeholder="비밀번호" required><button type="submit" id="go">열기</button></form>
+  <div class="err" id="gerr"></div>
+</div>
+
+<div class="wrap" id="app" hidden>
+  <header>
+    <div>
+      <h1>수미산건설 작업지시서·사전조사의뢰서 현황</h1>
+      <div class="sub">현대엔지니어링 주택CS에서 받은 문서 · 번호는 받은 날짜 오래된 순 · 보기 전용</div>
+    </div>
+    <div class="small" id="updated"></div>
+  </header>
+  <section class="stats" id="stats" aria-label="요약"></section>
+  <div class="bar">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-work" aria-selected="true">작업지시서 <span id="cnt-w"></span></button>
+      <button class="tab" role="tab" id="tab-survey" aria-selected="false">사전조사의뢰서 <span id="cnt-p"></span></button>
+    </div>
+    <div class="filters">
+      <label class="small" for="q">검색</label>
+      <input id="q" type="search" placeholder="현장, 공사명, 번호, 발신자">
+      <label class="small" for="fs">상태</label>
+      <select id="fs"><option value="">전체</option></select>
+      <label class="small"><input type="checkbox" id="fo"> 기한 지난 미완료만</label>
+    </div>
+  </div>
+  <div class="tablebox"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div>
+  <footer>행을 누르면 지시내용·원인·요청사항이 보여요. 진행상태 변경은 수미산건설 박진혁에게 알려 주세요. 매일 밤 최신 내용으로 갱신돼요.</footer>
+</div>
+
+<script id="payload" type="application/json">__PAYLOAD__</script>
+<script>
+const STATUSES=["확인 필요","접수","사전조사 완료","견적 회신 대기","견적 제출","날인본 회신","작업 진행","작업 완료","정산 완료","보류"];
+const DONE_W=new Set(["작업 완료","정산 완료"]);
+const DONE_P=new Set(["견적 제출","날인본 회신","작업 진행","작업 완료","정산 완료"]);
+const state={items:[],tab:"work",q:"",fs:"",fo:false,open:new Set()};
+const $=id=>document.getElementById(id);
+function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+
+async function unlock(pw){
+  const p=JSON.parse($("payload").textContent);
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
+  const key=await crypto.subtle.deriveKey({name:"PBKDF2",salt:b64(p.salt),iterations:p.iter,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["decrypt"]);
+  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(p.iv)},key,b64(p.ct));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+$("gf").onsubmit=async e=>{
+  e.preventDefault();$("gerr").textContent="";$("go").disabled=true;$("go").textContent="확인 중…";
+  try{const data=await unlock($("pw").value);start(data)}
+  catch(err){$("gerr").textContent="비밀번호가 맞지 않아요. 다시 입력해 주세요."}
+  finally{$("go").disabled=false;$("go").textContent="열기"}
+};
+
+function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function dday(due){const t=new Date(today()+"T00:00:00"),d=new Date(due+"T00:00:00");return Math.round((d-t)/86400000)}
+function short(d){return d?d.slice(5).replace("-","/"):"–"}
+function isDone(i){return (i.kind==="w"?DONE_W:DONE_P).has(i.status)}
+function sclass(s){if(s==="확인 필요")return "s-need";if(s==="보류")return "s-hold";if(DONE_W.has(s))return "s-done";return "s-progress"}
+
+function start(data){
+  state.items=data.items;$("updated").textContent=data.updated+" 기준";
+  STATUSES.forEach(s=>{const o=el("option",null,s);o.value=s;$("fs").append(o)});
+  $("gate").hidden=true;$("app").hidden=false;
+  $("tab-work").onclick=()=>setTab("work");$("tab-survey").onclick=()=>setTab("survey");
+  $("q").oninput=e=>{state.q=e.target.value.trim().toLowerCase();render()};
+  $("fs").onchange=e=>{state.fs=e.target.value;render()};
+  $("fo").onchange=e=>{state.fo=e.target.checked;render()};
+  setTab(location.hash==="#survey"?"survey":"work");
+}
+function setTab(t){state.tab=t;$("tab-work").setAttribute("aria-selected",t==="work");$("tab-survey").setAttribute("aria-selected",t==="survey");try{history.replaceState(null,"","#"+t)}catch(e){}render()}
+
+const HEAD={work:["No","받은 날짜","현장","공사명","작업지시번호","작업시작","완료요청","금액(원)","보낸 사람","진행상태","메모"],
+            survey:["No","받은 날짜","현장","조사 대상","문서번호","조사기한","제출기한","보낸 사람","진행상태","메모"]};
+function render(){
+  const all=state.items,w=all.filter(i=>i.kind==="w"),p=all.filter(i=>i.kind==="p");
+  const over=all.filter(i=>!isDone(i)&&i.due&&dday(i.due)<0).length;
+  const box=$("stats");box.replaceChildren();
+  [[w.length,"작업지시서","acc"],[p.length,"사전조사의뢰서","acc"],[all.filter(i=>i.status==="확인 필요").length,"진행상태 '확인 필요'","warn"],[all.filter(i=>i.status==="견적 회신 대기").length,"견적 회신 대기","warn"],[over,"기한 지난 미완료","bad"]]
+    .forEach(([n,l,c])=>{const d=el("div","stat "+c);d.append(el("b",null,String(n)),el("span",null,l));box.append(d)});
+  $("cnt-w").textContent=w.length;$("cnt-p").textContent=p.length;
+  const kind=state.tab==="work"?"w":"p";
+  $("thead").replaceChildren(...HEAD[state.tab].map(h=>el("th",null,h)));
+  const rows=all.filter(i=>i.kind===kind).sort((a,b)=>a.no-b.no).filter(i=>{
+    if(state.fs&&i.status!==state.fs)return false;
+    if(state.fo&&!(!isDone(i)&&i.due&&dday(i.due)<0))return false;
+    if(state.q&&![i.site,i.title,i.docno,i.sender,i.memo,i.detail,String(i.no)].join(" ").toLowerCase().includes(state.q))return false;
+    return true});
+  const tb=$("tbody");tb.replaceChildren();
+  if(!rows.length){const tr=el("tr"),td=el("td","small","조건에 맞는 건이 없어요.");td.colSpan=HEAD[state.tab].length;tr.append(td);tb.append(tr);return}
+  rows.forEach(i=>{
+    const tr=el("tr","main");tr.tabIndex=0;
+    const toggle=()=>{state.open.has(i.id)?state.open.delete(i.id):state.open.add(i.id);render()};
+    tr.onclick=toggle;tr.onkeydown=e=>{if(e.key==="Enter")toggle()};
+    tr.append(el("td","num",String(i.no)),el("td","num",short(i.recv)),el("td","site",i.site),el("td",null,i.title),el("td","small",i.docno||"–"),el("td","num",short(i.start)));
+    const dt=el("td","num",short(i.due));
+    if(i.due){const n=dday(i.due),b=el("span","dd");if(isDone(i)){b.classList.add("done");b.textContent="완료"}else if(n<0){b.classList.add("over");b.textContent=(-n)+"일 지남"}else if(n<=3){b.classList.add("soon");b.textContent=n===0?"오늘":"D-"+n}else{b.classList.add("later");b.textContent="D-"+n}dt.append(b)}
+    tr.append(dt);
+    if(kind==="w")tr.append(el("td","num",i.amount||"–"));
+    tr.append(el("td","small",i.sender));
+    const st=el("td");st.append(el("span","pill "+sclass(i.status),i.status));if(i.statusDate)st.append(el("div","small",short(i.statusDate)+" 변경"));tr.append(st);
+    tr.append(el("td","small",i.memo||""));
+    tb.append(tr);
+    if(state.open.has(i.id)){const dr=el("tr","detail"),td=el("td");td.colSpan=HEAD[state.tab].length;const dl=el("dl","detail-grid");
+      const add=(k,v)=>{if(v)dl.append(el("dt",null,k),el("dd",null,v))};
+      add(kind==="w"?"내용":"조사 내용",i.detail);add("원인·비고",i.cause);add("요청사항",i.request);add("메일 제목",i.subject);
+      td.append(dl);dr.append(td);tb.append(dr)}
+  });
+}
+</script>
+</body>
+</html>
