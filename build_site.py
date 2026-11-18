@@ -20,6 +20,24 @@ def s(v):
 def who(v):
     m = re.match(r'([가-힣]{2,4}) ?(매니저|책임)', s(v)); return (m.group(1) + " " + m.group(2)) if m else s(v)
 
+# 현장 이름 통일 (같은 현장인데 다르게 적힌 것 합치기). 새 현장은 자동 규칙으로 처리.
+ALIAS = [
+    (r'북위례|센트럴위례', '힐스테이트 센트럴위례 (북위례)'),
+    (r'공평', '공평오피스 (서울 공평 15·16지구)'),
+    (r'구리갈매|테라타워', '현대테라타워 구리갈매'),
+    (r'분당 ?구미동', '분당 구미동 오피스텔'),
+    (r'상봉', '상봉 프레미어스 엠코'),
+    (r'노원', '노원 프레미어스 엠코'),
+]
+def group(site):
+    t = s(site)
+    for pat, name in ALIAS:
+        if re.search(pat, t): return name
+    t = re.sub(r'\s*\(.*?\)\s*', ' ', t).strip()          # (1단지) 같은 괄호 제거
+    t = re.sub(r'^HS\s*', '힐스테이트 ', t).strip()          # HS → 힐스테이트
+    t = re.sub(r'\s+', ' ', t)
+    return t or '현장 미상'
+
 wb = load_workbook(xlsx, data_only=True)
 items = []
 ws = wb['작업지시서']
@@ -42,6 +60,7 @@ for r in range(5, ws.max_row + 1):
         detail=(s(c(6)) + " · " + s(c(7))) if s(c(6)) else s(c(7)), cause=s(c(8)), request=s(c(13)), subject=s(c(15)),
         status=s(c(16)) or "확인 필요", statusDate="", memo=s(c(17))))
 
+for it in items: it["group"] = group(it["site"])
 now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
 data = json.dumps({"updated": now.strftime("%Y-%m-%d %H:%M"), "items": items}, ensure_ascii=False).encode()
 salt, iv = os.urandom(16), os.urandom(12)

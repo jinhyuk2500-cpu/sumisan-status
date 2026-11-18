@@ -62,8 +62,29 @@ tr.detail td{background:var(--bg);font-size:13px}
 .detail-grid{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;max-width:980px}
 .detail-grid dt{color:var(--muted)} .detail-grid dd{margin:0;white-space:pre-line}
 footer{color:var(--muted);font-size:12px}
+/* 현장별 묶음 (조직도형) */
+.org{display:flex;flex-direction:column;align-items:center;gap:0}
+.org-root{background:var(--ink);color:var(--panel);font-weight:700;padding:10px 26px;border-radius:6px;text-align:center}
+.org-root .small{color:inherit;opacity:.75}
+.org-stem{width:2px;height:18px;background:var(--line)}
+.org-grid{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:22px 18px;border-top:2px solid var(--line);padding-top:18px}
+.org-site{display:flex;flex-direction:column}
+.org-head{background:var(--info);color:#fff;font-weight:700;padding:8px 12px;border-radius:6px;text-align:center}
+.org-head span{font-weight:400;opacity:.85;margin-left:4px}
+.org-branch{margin-left:14px;border-left:2px solid var(--line);padding-top:8px;display:flex;flex-direction:column;gap:10px}
+.org-cat{position:relative;margin-left:16px}
+.org-cat::before{content:"";position:absolute;left:-18px;top:16px;width:16px;height:2px;background:var(--line)}
+.org-cat-box{background:var(--info-soft);color:var(--info);border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-weight:700;font-size:13px}
+.org-items{list-style:none;margin:6px 0 0;padding:0 0 0 10px;display:flex;flex-direction:column;gap:4px}
+.org-item{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12.5px;cursor:pointer;display:flex;gap:6px;align-items:flex-start}
+.org-item:hover{border-color:var(--accent);background:var(--accent-soft)}
+.org-item:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.org-item .n{font-weight:700;font-variant-numeric:tabular-nums;min-width:20px;color:var(--muted)}
+.org-item .t{flex:1}
+.org-item .pill{font-size:11px;padding:0 6px}
+@media (max-width:600px){.org-grid{grid-template-columns:1fr}}
 [hidden]{display:none!important}
-@media (max-width:600px){h1{font-size:20px}.wrap{padding:16px 16px 40px}#q{min-width:0;flex:1}}
+@media (max-width:600px){.filters{width:100%}.tabs{flex-wrap:wrap}h1{font-size:20px}.wrap{padding:16px 16px 40px}#q{min-width:0;flex:1}}
 </style>
 </head>
 <body>
@@ -85,7 +106,8 @@ footer{color:var(--muted);font-size:12px}
   <section class="stats" id="stats" aria-label="요약"></section>
   <div class="bar">
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" id="tab-work" aria-selected="true">작업지시서 <span id="cnt-w"></span></button>
+      <button class="tab" role="tab" id="tab-org" aria-selected="true">현장별 묶음 <span id="cnt-g"></span></button>
+      <button class="tab" role="tab" id="tab-work" aria-selected="false">작업지시서 <span id="cnt-w"></span></button>
       <button class="tab" role="tab" id="tab-survey" aria-selected="false">사전조사의뢰서 <span id="cnt-p"></span></button>
     </div>
     <div class="filters">
@@ -96,8 +118,9 @@ footer{color:var(--muted);font-size:12px}
       <label class="small"><input type="checkbox" id="fo"> 기한 지난 미완료만</label>
     </div>
   </div>
-  <div class="tablebox"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div>
-  <footer>행을 누르면 지시내용·원인·요청사항이 보여요. 진행상태 변경은 수미산건설 박진혁에게 알려 주세요. 매일 밤 최신 내용으로 갱신돼요.</footer>
+  <div id="orgbox" class="org" hidden></div>
+  <div class="tablebox" id="tablebox"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div>
+  <footer>현장별 묶음에서 건을 누르면 해당 목록으로 이동해 상세가 열려요. 표에서는 행을 누르면 지시내용·원인·요청사항이 보여요. 진행상태 변경은 수미산건설 박진혁에게 알려 주세요. 매일 밤 최신 내용으로 갱신돼요.</footer>
 </div>
 
 <script id="payload" type="application/json">__PAYLOAD__</script>
@@ -134,34 +157,63 @@ function start(data){
   state.items=data.items;$("updated").textContent=data.updated+" 기준";
   STATUSES.forEach(s=>{const o=el("option",null,s);o.value=s;$("fs").append(o)});
   $("gate").hidden=true;$("app").hidden=false;
-  $("tab-work").onclick=()=>setTab("work");$("tab-survey").onclick=()=>setTab("survey");
+  $("tab-org").onclick=()=>setTab("org");$("tab-work").onclick=()=>setTab("work");$("tab-survey").onclick=()=>setTab("survey");
   $("q").oninput=e=>{state.q=e.target.value.trim().toLowerCase();render()};
   $("fs").onchange=e=>{state.fs=e.target.value;render()};
   $("fo").onchange=e=>{state.fo=e.target.checked;render()};
-  setTab(location.hash==="#survey"?"survey":"work");
+  const h=location.hash.slice(1);setTab(["work","survey","org"].includes(h)?h:"org");
 }
-function setTab(t){state.tab=t;$("tab-work").setAttribute("aria-selected",t==="work");$("tab-survey").setAttribute("aria-selected",t==="survey");try{history.replaceState(null,"","#"+t)}catch(e){}render()}
+function setTab(t){state.tab=t;$("tab-org").setAttribute("aria-selected",t==="org");$("tab-work").setAttribute("aria-selected",t==="work");$("tab-survey").setAttribute("aria-selected",t==="survey");try{history.replaceState(null,"","#"+t)}catch(e){}render()}
 
 const HEAD={work:["No","받은 날짜","현장","공사명","작업지시번호","작업시작","완료요청","금액(원)","보낸 사람","진행상태","메모"],
             survey:["No","받은 날짜","현장","조사 대상","문서번호","조사기한","제출기한","보낸 사람","진행상태","메모"]};
+function pass(i){
+  if(state.fs&&i.status!==state.fs)return false;
+  if(state.fo&&!(!isDone(i)&&i.due&&dday(i.due)<0))return false;
+  if(state.q&&![i.group,i.site,i.title,i.docno,i.sender,i.memo,i.detail,String(i.no)].join(" ").toLowerCase().includes(state.q))return false;
+  return true}
+function label(i){let t=(i.title||i.detail||"").replace(/\s*\(접수[^)]*\)/g,"").replace(/\s+/g," ").trim();return t.length>46?t.slice(0,45)+"…":t}
+function goto(i){state.open.add(i.id);setTab(i.kind==="w"?"work":"survey");
+  requestAnimationFrame(()=>{const r=document.querySelector('tr[data-id="'+i.id+'"]');if(r){r.scrollIntoView({block:"center"});r.focus()}})}
+function renderOrg(){
+  const box=$("orgbox");box.replaceChildren();
+  const rows=state.items.filter(pass);
+  const groups=new Map();rows.forEach(i=>{if(!groups.has(i.group))groups.set(i.group,[]);groups.get(i.group).push(i)});
+  const root=el("div","org-root");root.append(el("div",null,"수미산건설"),el("div","small",rows.length+"건 · "+groups.size+"개 현장"));
+  box.append(root);
+  if(!rows.length){box.append(el("div","org-stem"),el("div","small","조건에 맞는 건이 없어요."));return}
+  box.append(el("div","org-stem"));
+  const grid=el("div","org-grid");
+  [...groups.entries()].sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0],"ko")).forEach(([g,list])=>{
+    const col=el("div","org-site"),head=el("div","org-head",g);head.append(el("span",null,"("+list.length+"건)"));col.append(head);
+    const br=el("div","org-branch");
+    [["w","작업지시서"],["p","사전조사의뢰서"]].forEach(([k,name])=>{
+      const its=list.filter(i=>i.kind===k).sort((a,b)=>a.no-b.no);if(!its.length)return;
+      const cat=el("div","org-cat");cat.append(el("div","org-cat-box",name+" ("+its.length+"건)"));
+      const ul=el("ul","org-items");
+      its.forEach(i=>{const li=el("li","org-item");li.tabIndex=0;li.title=i.site+" · "+(i.title||"");
+        li.append(el("span","n",String(i.no)),el("span","t",label(i)),el("span","pill "+sclass(i.status),i.status));
+        li.onclick=()=>goto(i);li.onkeydown=e=>{if(e.key==="Enter")goto(i)};ul.append(li)});
+      cat.append(ul);br.append(cat)});
+    col.append(br);grid.append(col)});
+  box.append(grid);
+}
 function render(){
   const all=state.items,w=all.filter(i=>i.kind==="w"),p=all.filter(i=>i.kind==="p");
   const over=all.filter(i=>!isDone(i)&&i.due&&dday(i.due)<0).length;
   const box=$("stats");box.replaceChildren();
   [[w.length,"작업지시서","acc"],[p.length,"사전조사의뢰서","acc"],[all.filter(i=>i.status==="확인 필요").length,"진행상태 '확인 필요'","warn"],[all.filter(i=>i.status==="견적 회신 대기").length,"견적 회신 대기","warn"],[over,"기한 지난 미완료","bad"]]
     .forEach(([n,l,c])=>{const d=el("div","stat "+c);d.append(el("b",null,String(n)),el("span",null,l));box.append(d)});
-  $("cnt-w").textContent=w.length;$("cnt-p").textContent=p.length;
+  $("cnt-w").textContent=w.length;$("cnt-p").textContent=p.length;$("cnt-g").textContent=new Set(all.map(i=>i.group)).size+"곳";
+  const org=state.tab==="org";$("orgbox").hidden=!org;$("tablebox").hidden=org;
+  if(org){renderOrg();return}
   const kind=state.tab==="work"?"w":"p";
   $("thead").replaceChildren(...HEAD[state.tab].map(h=>el("th",null,h)));
-  const rows=all.filter(i=>i.kind===kind).sort((a,b)=>a.no-b.no).filter(i=>{
-    if(state.fs&&i.status!==state.fs)return false;
-    if(state.fo&&!(!isDone(i)&&i.due&&dday(i.due)<0))return false;
-    if(state.q&&![i.site,i.title,i.docno,i.sender,i.memo,i.detail,String(i.no)].join(" ").toLowerCase().includes(state.q))return false;
-    return true});
+  const rows=all.filter(i=>i.kind===kind).sort((a,b)=>a.no-b.no).filter(pass);
   const tb=$("tbody");tb.replaceChildren();
   if(!rows.length){const tr=el("tr"),td=el("td","small","조건에 맞는 건이 없어요.");td.colSpan=HEAD[state.tab].length;tr.append(td);tb.append(tr);return}
   rows.forEach(i=>{
-    const tr=el("tr","main");tr.tabIndex=0;
+    const tr=el("tr","main");tr.tabIndex=0;tr.dataset.id=i.id;
     const toggle=()=>{state.open.has(i.id)?state.open.delete(i.id):state.open.add(i.id);render()};
     tr.onclick=toggle;tr.onkeydown=e=>{if(e.key==="Enter")toggle()};
     tr.append(el("td","num",String(i.no)),el("td","num",short(i.recv)),el("td","site",i.site),el("td",null,i.title),el("td","small",i.docno||"–"),el("td","num",short(i.start)));
