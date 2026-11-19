@@ -85,7 +85,7 @@ footer{color:var(--muted);font-size:12px}
 .org-item:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .org-item .n{font-weight:700;font-variant-numeric:tabular-nums;min-width:20px;color:var(--muted)}
 .org-item .t{flex:1}
-.org-item .pill{font-size:11px;padding:0 6px}
+.org-item .pill{font-size:11px;padding:0 6px}.stw{display:flex;flex-wrap:wrap;justify-content:flex-end;max-width:46%}
 @media (max-width:600px){.org-grid{grid-template-columns:1fr}}
 [hidden]{display:none!important}
 @media (max-width:600px){.filters{width:100%}.tabs{flex-wrap:wrap}h1{font-size:20px}.wrap{padding:16px 16px 40px}#q{min-width:0;flex:1}}
@@ -155,7 +155,10 @@ $("gf").onsubmit=async e=>{
 function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function dday(due){const t=new Date(today()+"T00:00:00"),d=new Date(due+"T00:00:00");return Math.round((d-t)/86400000)}
 function short(d){return d?d.slice(5).replace("-","/"):"–"}
-function isDone(i){return (i.kind==="w"?DONE_W:DONE_P).has(i.status)}
+function sts(i){const a=Array.isArray(i.statuses)&&i.statuses.length?i.statuses:String(i.status||"").split(/\s*[,·]\s*/).filter(Boolean);return a.length?a:["확인 필요"]}
+function hasSt(i,s){return sts(i).includes(s)}
+function pills(i){const f=document.createDocumentFragment();sts(i).forEach(s=>{const p=el("span","pill "+sclass(s),s);p.style.margin="0 3px 3px 0";p.style.display="inline-block";f.append(p)});return f}
+function isDone(i){const D=i.kind==="w"?DONE_W:DONE_P;return sts(i).some(s=>D.has(s))}
 function sclass(s){if(s==="확인 필요")return "s-need";if(s==="보류")return "s-hold";if(DONE_W.has(s))return "s-done";return "s-progress"}
 
 function start(data){
@@ -192,7 +195,7 @@ function activeCard(){
 }
 function nol(i){return String(i.no)+(i.sub?"-"+i.sub:"")}
 function pass(i){
-  if(state.fs&&i.status!==state.fs)return false;
+  if(state.fs&&!hasSt(i,state.fs))return false;
   if(state.fo&&!(!isDone(i)&&i.due&&dday(i.due)<0))return false;
   if(state.q&&![i.group,i.site,i.title,i.docno,i.sender,i.memo,i.detail,nol(i)].join(" ").toLowerCase().includes(state.q))return false;
   return true}
@@ -216,7 +219,7 @@ function renderOrg(){
       const cat=el("div","org-cat");cat.append(el("div","org-cat-box",name+" ("+its.length+"건)"));
       const ul=el("ul","org-items");
       its.forEach(i=>{const li=el("li","org-item");li.tabIndex=0;li.title=i.site+" · "+(i.title||"");
-        li.append(el("span","n",nol(i)),el("span","t",label(i)),el("span","pill "+sclass(i.status),i.status));
+        li.append(el("span","n",nol(i)),el("span","t",label(i)),el("span","stw"));li.lastChild.append(pills(i));
         li.onclick=()=>goto(i);li.onkeydown=e=>{if(e.key==="Enter")goto(i)};ul.append(li)});
       cat.append(ul);br.append(cat)});
     col.append(br);grid.append(col)});
@@ -227,7 +230,7 @@ function render(){
   const over=all.filter(i=>!isDone(i)&&i.due&&dday(i.due)<0).length;
   const box=$("stats");box.replaceChildren();
   const act=activeCard();
-  [["w",w.length,"작업지시서","acc"],["p",p.length,"사전조사의뢰서","acc"],["need",all.filter(i=>i.status==="확인 필요").length,"진행상태 '확인 필요'","warn"],["wait",all.filter(i=>i.status==="견적 회신 대기").length,"견적 회신 대기","warn"],["over",over,"기한 지난 미완료","bad"]]
+  [["w",w.length,"작업지시서","acc"],["p",p.length,"사전조사의뢰서","acc"],["need",all.filter(i=>hasSt(i,"확인 필요")).length,"진행상태 '확인 필요'","warn"],["wait",all.filter(i=>hasSt(i,"견적 회신 대기")).length,"견적 회신 대기","warn"],["over",over,"기한 지난 미완료","bad"]]
     .forEach(([k,n,l,c])=>{const d=el("button","stat "+c);d.type="button";d.setAttribute("aria-pressed",act===k);d.onclick=()=>quick(k);
       d.append(el("b",null,String(n)),el("span",null,l),el("em",null,act===k?(k==="w"||k==="p"?"보는 중":"보는 중 · 다시 누르면 해제"):"눌러서 목록 보기"));box.append(d)});
   $("cnt-a").textContent=all.length;
@@ -250,7 +253,7 @@ function render(){
     tr.append(dt);
     if(kind==="w")tr.append(el("td","num",i.amount||"–"));
     tr.append(el("td","small",i.sender));
-    const st=el("td");st.append(el("span","pill "+sclass(i.status),i.status));if(i.statusDate)st.append(el("div","small",short(i.statusDate)+" 변경"));tr.append(st);
+    const st=el("td");st.append(pills(i));if(i.statusDate)st.append(el("div","small",short(i.statusDate)+" 변경"));tr.append(st);
     tr.append(el("td","small",i.memo||""));
     tb.append(tr);
     if(state.open.has(i.id)){const dr=el("tr","detail"),td=el("td");td.colSpan=HEAD[state.tab].length;const dl=el("dl","detail-grid");
