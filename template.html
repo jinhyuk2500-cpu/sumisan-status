@@ -87,6 +87,9 @@ footer{color:var(--muted);font-size:12px}
 .org-item .t{flex:1}
 .org-item .pill{font-size:11px;padding:0 6px}.stw{display:flex;flex-wrap:wrap;justify-content:flex-end;max-width:46%}
 @media (max-width:600px){.org-grid{grid-template-columns:1fr}}
+.stat .sent{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.stat .sent span{font-size:12px;font-weight:700;border-radius:10px;padding:1px 8px}
+.stat .sent .s1{background:#7b2ff2;color:#fff}.stat .sent .s2{background:var(--warn-soft);color:var(--warn)}
 [hidden]{display:none!important}
 @media (max-width:600px){.filters{width:100%}.tabs{flex-wrap:wrap}h1{font-size:20px}.wrap{padding:16px 16px 40px}#q{min-width:0;flex:1}}
 </style>
@@ -158,6 +161,8 @@ function short(d){return d?d.slice(5).replace("-","/"):"–"}
 function sts(i){const a=Array.isArray(i.statuses)&&i.statuses.length?i.statuses:String(i.status||"").split(/\s*[,·]\s*/).filter(Boolean);return a.length?a:["확인 필요"]}
 function hasSt(i,s){return sts(i).includes(s)}
 function pills(i){const f=document.createDocumentFragment();sts(i).forEach(s=>{const p=el("span","pill "+sclass(s),s);p.style.margin="0 3px 3px 0";p.style.display="inline-block";f.append(p)});return f}
+const SENT=new Set(["견적 제출","날인본 회신","작업 진행","작업 완료","정산 완료"]);
+function isSent(i){return sts(i).some(x=>SENT.has(x))}
 function isDone(i){const D=i.kind==="w"?DONE_W:DONE_P;return sts(i).some(s=>D.has(s))}
 function sclass(s){if(s==="견적 제출")return "s-quote";if(s==="확인 필요")return "s-need";if(s==="보류")return "s-hold";if(DONE_W.has(s))return "s-done";return "s-progress"}
 
@@ -232,7 +237,9 @@ function render(){
   const act=activeCard();
   [["w",w.length,"작업지시서","acc"],["p",p.length,"사전조사의뢰서","acc"],["need",all.filter(i=>hasSt(i,"확인 필요")).length,"진행상태 '확인 필요'","warn"],["wait",all.filter(i=>hasSt(i,"견적 회신 대기")).length,"견적 회신 대기","warn"],["over",over,"기한 지난 미완료","bad"]]
     .forEach(([k,n,l,c])=>{const d=el("button","stat "+c);d.type="button";d.setAttribute("aria-pressed",act===k);d.onclick=()=>quick(k);
-      d.append(el("b",null,String(n)),el("span",null,l),el("em",null,act===k?(k==="w"||k==="p"?"보는 중":"보는 중 · 다시 누르면 해제"):"눌러서 목록 보기"));box.append(d)});
+      d.append(el("b",null,String(n)),el("span",null,l));
+      if(k==="w"||k==="p"){const L=all.filter(i=>i.kind===k),sn=L.filter(isSent).length;const q=el("div","sent");q.append(el("span","s1","송부 "+sn+"건"),el("span","s2","미송부 "+(L.length-sn)+"건"));d.append(q)}
+      d.append(el("em",null,act===k?(k==="w"||k==="p"?"보는 중":"보는 중 · 다시 누르면 해제"):"눌러서 목록 보기"));box.append(d)});
   $("cnt-a").textContent=all.length;
   $("cnt-w").textContent=w.length;$("cnt-p").textContent=p.length;$("cnt-g").textContent=new Set(all.map(i=>i.group)).size+"곳";
   const org=state.tab==="org";$("orgbox").hidden=!org;$("tablebox").hidden=org;
