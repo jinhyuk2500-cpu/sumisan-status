@@ -164,14 +164,15 @@ function pills(i){const f=document.createDocumentFragment();sts(i).forEach(s=>{c
 const SENT=new Set(["견적 제출","날인본 회신","작업 진행","작업 완료","정산 완료"]);
 const WORK_DONE=new Set(["작업 완료","정산 완료"]);
 function isWorkDone(i){return sts(i).some(x=>WORK_DONE.has(x))}
-function isOver(i){return !isDone(i)&&i.due&&dday(i.due)<0}
+function isWait(i){return hasSt(i,"견적 회신 대기")||hasSt(i,"보류")}
+function isOver(i){return !isDone(i)&&!hasSt(i,"보류")&&i.due&&dday(i.due)<0}
 function isSent(i){return sts(i).some(x=>SENT.has(x))}
 function isDone(i){return sts(i).some(s=>DONE_P.has(s))}
 function sclass(s){if(s==="견적 제출")return "s-quote";if(s==="확인 필요")return "s-need";if(s==="보류")return "s-hold";if(DONE_W.has(s))return "s-done";return "s-progress"}
 
 function start(data){
   state.items=data.items;$("updated").textContent=data.updated+" 기준";
-  STATUSES.forEach(s=>{const o=el("option",null,s);o.value=s;$("fs").append(o)});
+  STATUSES.forEach(s=>{const o=el("option",null,s);o.value=s;$("fs").append(o)});{const o=el("option",null,"견적 회신 대기 + 보류");o.value="__wait";$("fs").append(o)}
   $("gate").hidden=true;$("app").hidden=false;
   $("tab-org").onclick=()=>setTab("org");$("tab-work").onclick=()=>setTab("work");$("tab-survey").onclick=()=>setTab("survey");$("tab-all").onclick=()=>setTab("all");
   $("q").oninput=e=>{state.q=e.target.value.trim().toLowerCase();render()};
@@ -188,7 +189,7 @@ function quick(k){
   const cur=activeCard();
   if(cur===k&&k!=="w"&&k!=="p"){state.fs="";state.fo=false;syncFilters();setTab("all");return}
   state.fs="";state.fo=false;
-  if(k==="need")state.fs="확인 필요";if(k==="wait")state.fs="견적 회신 대기";if(k==="over")state.fo=true;
+  if(k==="need")state.fs="확인 필요";if(k==="wait")state.fs="__wait";if(k==="over")state.fo=true;
   syncFilters();setTab(k==="w"?"work":k==="p"?"survey":"all");
   requestAnimationFrame(()=>$("tablebox").scrollIntoView({block:"start",behavior:"smooth"}));
 }
@@ -196,14 +197,14 @@ function syncFilters(){$("fs").value=state.fs;$("fo").checked=state.fo}
 function activeCard(){
   if(state.fo&&!state.fs&&state.tab==="all")return "over";
   if(state.fs==="확인 필요"&&!state.fo&&state.tab==="all")return "need";
-  if(state.fs==="견적 회신 대기"&&!state.fo&&state.tab==="all")return "wait";
+  if(state.fs==="__wait"&&!state.fo&&state.tab==="all")return "wait";
   if(!state.fs&&!state.fo&&state.tab==="work")return "w";
   if(!state.fs&&!state.fo&&state.tab==="survey")return "p";
   return "";
 }
 function nol(i){return String(i.no)+(i.sub?"-"+i.sub:"")}
 function pass(i){
-  if(state.fs&&!hasSt(i,state.fs))return false;
+  if(state.fs&&!(state.fs==="__wait"?isWait(i):hasSt(i,state.fs)))return false;
   if(state.fo&&!isOver(i))return false;
   if(state.q&&![i.group,i.site,i.title,i.docno,i.sender,i.memo,i.detail,nol(i)].join(" ").toLowerCase().includes(state.q))return false;
   return true}
@@ -238,7 +239,7 @@ function render(){
   const over=all.filter(isOver).length;
   const box=$("stats");box.replaceChildren();
   const act=activeCard();
-  [["w",w.length,"작업지시서","acc"],["p",p.length,"사전조사의뢰서","acc"],["need",all.filter(i=>hasSt(i,"확인 필요")).length,"진행상태 '확인 필요'","warn"],["wait",all.filter(i=>hasSt(i,"견적 회신 대기")).length,"견적 회신 대기","warn"],["over",over,"기한 지난 미완료 (견적 미제출)","bad"]]
+  [["w",w.length,"작업지시서","acc"],["p",p.length,"사전조사의뢰서","acc"],["need",all.filter(i=>hasSt(i,"확인 필요")).length,"진행상태 '확인 필요'","warn"],["wait",all.filter(isWait).length,"견적 회신 대기 · 보류","warn"],["over",over,"기한 지난 미완료 (견적 미제출, 보류 제외)","bad"]]
     .forEach(([k,n,l,c])=>{const d=el("button","stat "+c);d.type="button";d.setAttribute("aria-pressed",act===k);d.onclick=()=>quick(k);
       d.append(el("b",null,String(n)),el("span",null,l));
       if(k==="w"||k==="p"){const L=all.filter(i=>i.kind===k),q=el("div","sent");
