@@ -164,6 +164,7 @@ function pills(i){const f=document.createDocumentFragment();sts(i).forEach(s=>{c
 const SENT=new Set(["견적 제출","날인본 회신","작업 진행","작업 완료","정산 완료"]);
 const WORK_DONE=new Set(["작업 완료","정산 완료"]);
 function isWorkDone(i){return sts(i).some(x=>WORK_DONE.has(x))}
+function boxColor(i){if(isWorkDone(i))return "#1e8e3e";if(hasSt(i,"보류"))return "#d93025";if(hasSt(i,"견적 제출"))return "#7b2ff2";return ""}
 function isWait(i){return hasSt(i,"견적 회신 대기")||hasSt(i,"보류")}
 function isOver(i){return !isDone(i)&&!hasSt(i,"보류")&&i.due&&dday(i.due)<0}
 function isSent(i){return sts(i).some(x=>SENT.has(x))}
@@ -228,7 +229,7 @@ function renderOrg(){
       const cat=el("div","org-cat");cat.append(el("div","org-cat-box",name+" ("+its.length+"건)"));
       const ul=el("ul","org-items");
       its.forEach(i=>{const li=el("li","org-item");li.tabIndex=0;li.title=i.site+" · "+(i.title||"");
-        li.append(el("span","n",nol(i)),el("span","t",label(i)),el("span","stw"));li.lastChild.append(pills(i));
+        li.append(el("span","n",nol(i)),el("span","t",label(i)),el("span","stw"));li.lastChild.append(pills(i));{const bc=boxColor(i);if(bc){li.style.borderColor=bc;li.style.borderWidth="2px";li.style.boxShadow="inset 4px 0 0 "+bc}}
         li.onclick=()=>goto(i);li.onkeydown=e=>{if(e.key==="Enter")goto(i)};ul.append(li)});
       cat.append(ul);br.append(cat)});
     col.append(br);grid.append(col)});
