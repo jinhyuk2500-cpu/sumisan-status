@@ -190,10 +190,11 @@ function activeCard(){
   if(!state.fs&&!state.fo&&state.tab==="survey")return "p";
   return "";
 }
+function nol(i){return String(i.no)+(i.sub?"-"+i.sub:"")}
 function pass(i){
   if(state.fs&&i.status!==state.fs)return false;
   if(state.fo&&!(!isDone(i)&&i.due&&dday(i.due)<0))return false;
-  if(state.q&&![i.group,i.site,i.title,i.docno,i.sender,i.memo,i.detail,String(i.no)].join(" ").toLowerCase().includes(state.q))return false;
+  if(state.q&&![i.group,i.site,i.title,i.docno,i.sender,i.memo,i.detail,nol(i)].join(" ").toLowerCase().includes(state.q))return false;
   return true}
 function label(i){let t=(i.title||i.detail||"").replace(/\s*\(접수[^)]*\)/g,"").replace(/\s+/g," ").trim();return t.length>46?t.slice(0,45)+"…":t}
 function goto(i){state.open.add(i.id);setTab(i.kind==="w"?"work":"survey");
@@ -211,11 +212,11 @@ function renderOrg(){
     const col=el("div","org-site"),head=el("div","org-head",g);head.append(el("span",null,"("+list.length+"건)"));col.append(head);
     const br=el("div","org-branch");
     [["w","작업지시서"],["p","사전조사의뢰서"]].forEach(([k,name])=>{
-      const its=list.filter(i=>i.kind===k).sort((a,b)=>a.no-b.no);if(!its.length)return;
+      const its=list.filter(i=>i.kind===k).sort((a,b)=>(a.no-b.no||(a.sub||0)-(b.sub||0)));if(!its.length)return;
       const cat=el("div","org-cat");cat.append(el("div","org-cat-box",name+" ("+its.length+"건)"));
       const ul=el("ul","org-items");
       its.forEach(i=>{const li=el("li","org-item");li.tabIndex=0;li.title=i.site+" · "+(i.title||"");
-        li.append(el("span","n",String(i.no)),el("span","t",label(i)),el("span","pill "+sclass(i.status),i.status));
+        li.append(el("span","n",nol(i)),el("span","t",label(i)),el("span","pill "+sclass(i.status),i.status));
         li.onclick=()=>goto(i);li.onkeydown=e=>{if(e.key==="Enter")goto(i)};ul.append(li)});
       cat.append(ul);br.append(cat)});
     col.append(br);grid.append(col)});
@@ -235,15 +236,15 @@ function render(){
   if(org){renderOrg();return}
   const kind=state.tab==="work"?"w":state.tab==="survey"?"p":null;
   $("thead").replaceChildren(...HEAD[state.tab].map(h=>el("th",null,h)));
-  const rows=all.filter(i=>!kind||i.kind===kind).sort((a,b)=>kind?a.no-b.no:(a.kind===b.kind?a.no-b.no:(a.kind==="w"?-1:1))).filter(pass);
+  const rows=all.filter(i=>!kind||i.kind===kind).sort((a,b)=>kind?(a.no-b.no||(a.sub||0)-(b.sub||0)):(a.kind===b.kind?(a.no-b.no||(a.sub||0)-(b.sub||0)):(a.kind==="w"?-1:1))).filter(pass);
   const tb=$("tbody");tb.replaceChildren();
   if(!rows.length){const tr=el("tr"),td=el("td","small","조건에 맞는 건이 없어요.");td.colSpan=HEAD[state.tab].length;tr.append(td);tb.append(tr);return}
   rows.forEach(i=>{
     const tr=el("tr","main");tr.tabIndex=0;tr.dataset.id=i.id;
     const toggle=()=>{state.open.has(i.id)?state.open.delete(i.id):state.open.add(i.id);render()};
     tr.onclick=toggle;tr.onkeydown=e=>{if(e.key==="Enter")toggle()};
-    if(!kind){const kc=el("td","small",i.kind==="w"?"작업지시서":"사전조사");kc.style.whiteSpace="nowrap";tr.append(kc,el("td","num",String(i.no)),el("td","num",short(i.recv)),el("td","site",i.site),el("td",null,label(i)))}
-    else tr.append(el("td","num",String(i.no)),el("td","num",short(i.recv)),el("td","site",i.site),el("td",null,i.title),el("td","small",i.docno||"–"),el("td","num",short(i.start)));
+    if(!kind){const kc=el("td","small",i.kind==="w"?"작업지시서":"사전조사");kc.style.whiteSpace="nowrap";tr.append(kc,el("td","num",nol(i)),el("td","num",short(i.recv)),el("td","site",i.site),el("td",null,label(i)))}
+    else tr.append(el("td","num",nol(i)),el("td","num",short(i.recv)),el("td","site",i.site),el("td",null,i.title),el("td","small",i.docno||"–"),el("td","num",short(i.start)));
     const dt=el("td","num",short(i.due));
     if(i.due){const n=dday(i.due),b=el("span","dd");if(isDone(i)){b.classList.add("done");b.textContent="완료"}else if(n<0){b.classList.add("over");b.textContent=(-n)+"일 지남"}else if(n<=3){b.classList.add("soon");b.textContent=n===0?"오늘":"D-"+n}else{b.classList.add("later");b.textContent="D-"+n}dt.append(b)}
     tr.append(dt);

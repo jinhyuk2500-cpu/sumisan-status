@@ -17,6 +17,12 @@ def s(v):
     v = "" if v is None else str(v)
     v = re.sub(r'\(?0\d{1,2}-\d{3,4}-\d{4}\)?', '', v)   # 전화번호 제거
     return v.strip()
+def parse_no(v):
+    """No 칸: 정수(15) 또는 '15-1'처럼 같은 날 따로 뺀 건. (번호, 보조번호) 반환, 아니면 None"""
+    if isinstance(v, int): return v, 0
+    m = re.fullmatch(r'\s*(\d+)\s*-\s*(\d+)\s*', str(v or ''))
+    return (int(m.group(1)), int(m.group(2))) if m else None
+def pid(k, no, sub): return f"{k}{no:02d}" + (f"_{sub}" if sub else "")
 def who(v):
     m = re.match(r'([가-힣]{2,4}) ?(매니저|책임)', s(v)); return (m.group(1) + " " + m.group(2)) if m else s(v)
 
@@ -43,19 +49,21 @@ items = []
 ws = wb['작업지시서']
 for r in range(5, ws.max_row + 1):
     c = lambda k: ws.cell(r, k).value
-    no = c(1)
-    if not isinstance(no, int): continue
+    pn = parse_no(c(1))
+    if not pn: continue
+    no, sub = pn
     amt = c(14); amt = f"{amt:,}" if isinstance(amt, (int, float)) else s(amt)
-    items.append(dict(id=f"w{no:02d}", kind="w", no=no, recv=d(c(2)), site=s(c(4)), title=s(c(6)), docno=s(c(5)),
+    items.append(dict(id=pid("w", no, sub), kind="w", no=no, sub=sub, recv=d(c(2)), site=s(c(4)), title=s(c(6)), docno=s(c(5)),
         start=d(c(11)), due=d(c(12)), amount=amt, sender=who(c(3)),
         detail=" / ".join(x for x in [s(c(7)), ("공사범위: " + s(c(9))) if s(c(9)) else ""] if x),
         cause=s(c(8)), request=s(c(16)), subject=s(c(18)), status=s(c(19)) or "확인 필요", statusDate="", memo=s(c(20))))
 ws = wb['사전조사의뢰서']
 for r in range(5, ws.max_row + 1):
     c = lambda k: ws.cell(r, k).value
-    no = c(1)
-    if not isinstance(no, int): continue
-    items.append(dict(id=f"p{no:02d}", kind="p", no=no, recv=d(c(2)), site=s(c(4)), title=s(c(7)), docno=s(c(5)),
+    pn = parse_no(c(1))
+    if not pn: continue
+    no, sub = pn
+    items.append(dict(id=pid("p", no, sub), kind="p", no=no, sub=sub, recv=d(c(2)), site=s(c(4)), title=s(c(7)), docno=s(c(5)),
         start=d(c(10)), due=d(c(11)), amount="", sender=who(c(3)),
         detail=(s(c(6)) + " · " + s(c(7))) if s(c(6)) else s(c(7)), cause=s(c(8)), request=s(c(13)), subject=s(c(15)),
         status=s(c(16)) or "확인 필요", statusDate="", memo=s(c(17))))
