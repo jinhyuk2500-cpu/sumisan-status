@@ -123,7 +123,7 @@ footer{color:var(--muted);font-size:12px}
       <input id="q" type="search" placeholder="현장, 공사명, 번호, 발신자">
       <label class="small" for="fs">상태</label>
       <select id="fs"><option value="">전체</option></select>
-      <label class="small"><input type="checkbox" id="fo"> 기한 지난 미완료만 (사전조사)</label>
+      <label class="small"><input type="checkbox" id="fo"> 기한 지난 미완료만</label>
     </div>
   </div>
   <div id="orgbox" class="org" hidden></div>
@@ -162,9 +162,11 @@ function sts(i){const a=Array.isArray(i.statuses)&&i.statuses.length?i.statuses:
 function hasSt(i,s){return sts(i).includes(s)}
 function pills(i){const f=document.createDocumentFragment();sts(i).forEach(s=>{const p=el("span","pill "+sclass(s),s);p.style.margin="0 3px 3px 0";p.style.display="inline-block";f.append(p)});return f}
 const SENT=new Set(["견적 제출","날인본 회신","작업 진행","작업 완료","정산 완료"]);
-function isOver(i){return i.kind==="p"&&!isDone(i)&&i.due&&dday(i.due)<0}
+const WORK_DONE=new Set(["작업 완료","정산 완료"]);
+function isWorkDone(i){return sts(i).some(x=>WORK_DONE.has(x))}
+function isOver(i){return !isDone(i)&&i.due&&dday(i.due)<0}
 function isSent(i){return sts(i).some(x=>SENT.has(x))}
-function isDone(i){const D=i.kind==="w"?DONE_W:DONE_P;return sts(i).some(s=>D.has(s))}
+function isDone(i){return sts(i).some(s=>DONE_P.has(s))}
 function sclass(s){if(s==="견적 제출")return "s-quote";if(s==="확인 필요")return "s-need";if(s==="보류")return "s-hold";if(DONE_W.has(s))return "s-done";return "s-progress"}
 
 function start(data){
@@ -236,11 +238,11 @@ function render(){
   const over=all.filter(isOver).length;
   const box=$("stats");box.replaceChildren();
   const act=activeCard();
-  [["w",w.length,"작업지시서","acc"],["p",p.length,"사전조사의뢰서","acc"],["need",all.filter(i=>hasSt(i,"확인 필요")).length,"진행상태 '확인 필요'","warn"],["wait",all.filter(i=>hasSt(i,"견적 회신 대기")).length,"견적 회신 대기","warn"],["over",over,"기한 지난 미완료 (사전조사)","bad"]]
+  [["w",w.length,"작업지시서","acc"],["p",p.length,"사전조사의뢰서","acc"],["need",all.filter(i=>hasSt(i,"확인 필요")).length,"진행상태 '확인 필요'","warn"],["wait",all.filter(i=>hasSt(i,"견적 회신 대기")).length,"견적 회신 대기","warn"],["over",over,"기한 지난 미완료 (견적 미제출)","bad"]]
     .forEach(([k,n,l,c])=>{const d=el("button","stat "+c);d.type="button";d.setAttribute("aria-pressed",act===k);d.onclick=()=>quick(k);
       d.append(el("b",null,String(n)),el("span",null,l));
       if(k==="w"||k==="p"){const L=all.filter(i=>i.kind===k),q=el("div","sent");
-        if(k==="w"){const dn=L.filter(isDone).length,sn=L.filter(i=>!isDone(i)&&isSent(i)).length;q.append(el("span","s1","송부 "+sn+"건"),el("span","s2","미송부 "+(L.length-sn-dn)+"건"),el("span","s3","작업완료 "+dn+"건"))}
+        if(k==="w"){const dn=L.filter(isWorkDone).length,sn=L.filter(i=>!isWorkDone(i)&&isSent(i)).length;q.append(el("span","s1","송부 "+sn+"건"),el("span","s2","미송부 "+(L.length-sn-dn)+"건"),el("span","s3","작업완료 "+dn+"건"))}
         else{const sn=L.filter(isSent).length;q.append(el("span","s1","송부 "+sn+"건"),el("span","s2","미송부 "+(L.length-sn)+"건"))}
         d.append(q)}
       d.append(el("em",null,act===k?(k==="w"||k==="p"?"보는 중":"보는 중 · 다시 누르면 해제"):"눌러서 목록 보기"));box.append(d)});
