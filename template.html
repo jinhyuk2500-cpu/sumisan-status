@@ -229,7 +229,7 @@ function renderOrg(){
       const cat=el("div","org-cat");cat.append(el("div","org-cat-box",name+" ("+its.length+"건)"));
       const ul=el("ul","org-items");
       its.forEach(i=>{const li=el("li","org-item");li.tabIndex=0;li.title=i.site+" · "+(i.title||"");
-        li.append(el("span","n",nol(i)),el("span","t",label(i)),el("span","stw"));li.lastChild.append(pills(i));{const bc=boxColor(i);if(bc){li.style.borderColor=bc;li.style.borderWidth="2px";li.style.boxShadow="inset 4px 0 0 "+bc}}
+        li.append(el("span","n",nol(i)),el("span","t",label(i)),el("span","stw"));li.lastChild.append(pills(i));{const bc=boxColor(i);if(bc){li.style.borderColor=bc;li.style.boxShadow="inset 2px 0 0 "+bc}}
         li.onclick=()=>goto(i);li.onkeydown=e=>{if(e.key==="Enter")goto(i)};ul.append(li)});
       cat.append(ul);br.append(cat)});
     col.append(br);grid.append(col)});
